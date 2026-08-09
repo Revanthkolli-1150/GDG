@@ -427,36 +427,48 @@ export const ERDashboard: React.FC<ERDashboardProps> = ({
 
                     {/* Paramedic Voice Note & Gemini AI Formal Clinical Transcript Card */}
                     {(triage.voiceTranscript || (triage.notes && triage.notes.includes('[Voice Note]'))) && (
-                      <div className="bg-slate-950 p-3.5 rounded-xl border border-cyan-500/50 space-y-2 shadow-xl">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 font-mono text-xs">
+                      <div className="bg-slate-950 p-3.5 rounded-xl border border-cyan-500/50 space-y-2 shadow-xl font-mono text-xs">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
                           <span className="font-extrabold text-cyan-400 flex items-center gap-1.5">
                             <Bot className="w-4 h-4 text-cyan-300 animate-pulse" />
-                            GEMINI AI CLINICAL TRANSCRIPTION ENGINE
+                            GEMINI AI CLINICAL PRE-ARRIVAL BRIEF &amp; ER DOCTOR ACTIONS
                           </span>
                           <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/40 font-bold">
-                            FORMAL MEDICAL SYNTHESIS
+                            REAL-TIME AI SYNTHESIS
                           </span>
                         </div>
 
-                        {/* Gemini AI Formal Clinical Medical Transcript */}
-                        <div className="bg-slate-900/90 p-3 rounded-lg border border-cyan-500/30 text-xs text-cyan-100 font-mono leading-relaxed space-y-1">
+                        {/* 1. Gemini AI Clinical Patient Situation Summary */}
+                        <div className="bg-slate-900/90 p-3 rounded-lg border border-cyan-500/30 space-y-1">
                           <span className="font-extrabold text-emerald-400 uppercase text-[10px] flex items-center gap-1">
                             <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                            GEMINI AI FORMAL CLINICAL MEDICAL ASSESSMENT (FOR ER PHYSICIANS):
+                            PATIENT PRESENT CLINICAL SITUATION SUMMARY (MEDICAL TERMS):
                           </span>
-                          <p className="font-semibold text-slate-100">
-                            "{triage.notes?.includes('[Gemini Clinical Summary]:') ? triage.notes.split('[Gemini Clinical Summary]:')[1] : triage.chiefComplaint}"
+                          <p className="font-semibold text-cyan-100 text-xs leading-relaxed">
+                            "{triage.notes?.includes('[Patient Clinical Summary]:') ? triage.notes.split('[Patient Clinical Summary]:')[1]?.split('|')[0]?.trim() : triage.chiefComplaint}"
                           </p>
                         </div>
 
-                        {/* Raw Verbatim Paramedic Speech Recording */}
-                        <div className="bg-slate-900/50 p-2 rounded-md border border-slate-800 text-[11px] text-slate-400 font-mono italic flex items-start space-x-2">
+                        {/* 2. Immediate ER Doctor Pre-Arrival Actions */}
+                        {triage.notes?.includes('[Immediate ER Doctor Actions]:') && (
+                          <div className="bg-slate-900/90 p-2.5 rounded-lg border border-emerald-500/40 space-y-1">
+                            <span className="font-extrabold text-emerald-300 uppercase text-[10px] block">
+                              IMMEDIATE ER DOCTOR PRE-ARRIVAL ACTIONS (WHAT DOCTORS MUST DO NEXT):
+                            </span>
+                            <div className="text-[11px] text-emerald-200 font-semibold leading-relaxed">
+                              {triage.notes.split('[Immediate ER Doctor Actions]:')[1]?.split('|')[0]?.trim()}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. Raw Verbatim Paramedic Speech Recording */}
+                        <div className="bg-slate-900/50 p-2 rounded-md border border-slate-800 text-[11px] text-slate-400 italic flex items-start space-x-2">
                           <Volume2 className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
                           <div>
                             <span className="font-bold text-slate-400 not-italic uppercase text-[9px] block">
                               VERBATIM PARAMEDIC VOICE RECORDING:
                             </span>
-                            "{triage.voiceTranscript || triage.notes?.split('|')[0]?.replace('[Voice Note]:', '')?.trim() || 'Recorded Speech Dictation'}"
+                            "{triage.voiceTranscript || triage.notes?.split('|')[0]?.replace('[Spoken Voice]:', '')?.replace('[Voice Note]:', '')?.trim() || 'Recorded Speech Dictation'}"
                           </div>
                         </div>
                       </div>

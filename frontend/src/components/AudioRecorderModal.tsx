@@ -115,14 +115,15 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
 
   const handleProcessAudio = async () => {
     setIsProcessing(true);
-    const textToAnalyze = liveTranscript.trim() || "accident where there is a heavy weight loss and major factors";
+    const textToAnalyze = liveTranscript.trim() || "there is an severe accident where the heavy blood loss and got a major factors";
 
     try {
       const geminiRes = await synthesizeClinicalMedicalTranscript(textToAnalyze);
 
       setExtractedResult({
         transcript: textToAnalyze,
-        clinicalSummary: geminiRes.formalClinicalTranscript,
+        patientSituationSummary: geminiRes.patientSituationSummary,
+        immediateErDoctorActions: geminiRes.immediateErDoctorActions,
         primaryDiagnosis: geminiRes.primaryDiagnosis,
         esiLevel: geminiRes.esiLevel,
         suggestedPrecautions: geminiRes.suggestedPrecautions,
@@ -135,8 +136,9 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
 
   const handleApplyToForm = () => {
     if (extractedResult) {
+      const erActionText = extractedResult.immediateErDoctorActions ? extractedResult.immediateErDoctorActions.join(' | ') : '';
       onExtractionComplete({
-        transcript: `[Spoken Voice]: "${extractedResult.transcript}" | [Gemini Clinical Summary]: ${extractedResult.clinicalSummary}`,
+        transcript: `[Spoken Voice]: "${extractedResult.transcript}" | [Patient Clinical Summary]: ${extractedResult.patientSituationSummary} | [Immediate ER Doctor Actions]: ${erActionText}`,
         chiefComplaint: extractedResult.primaryDiagnosis,
         esiLevel: extractedResult.esiLevel,
         precautions: extractedResult.suggestedPrecautions,
@@ -238,7 +240,7 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
                 className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2"
               >
                 <Sparkles className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
-                <span>{isProcessing ? 'SYNTHESIZING CLINICAL TRANSCRIPT...' : 'TRANSFORM TO MEDICAL TRANSCRIPT WITH GEMINI AI'}</span>
+                <span>{isProcessing ? 'SYNTHESIZING ER CLINICAL BRIEF...' : 'TRANSFORM TO MEDICAL BRIEF WITH GEMINI AI'}</span>
               </button>
             </div>
           )}
@@ -246,28 +248,47 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
 
         {/* Extracted Trauma Results Preview */}
         {extractedResult && (
-          <div className="bg-slate-950 border border-cyan-500/50 rounded-xl p-4 space-y-3 font-mono text-xs">
+          <div className="bg-slate-950 border border-cyan-500/50 rounded-xl p-4 space-y-3 font-mono text-xs max-h-[350px] overflow-y-auto">
             <div className="flex justify-between border-b border-slate-800 pb-2">
               <span className="text-slate-400 font-bold">PARAMEDIC SPOKEN VOICE:</span>
               <span className="text-rose-400 font-bold">{extractedResult.esiLevel}</span>
             </div>
             <p className="text-slate-400 italic">"{extractedResult.transcript}"</p>
 
+            {/* 1. Gemini AI Clinical Patient Situation Summary */}
             <div className="bg-slate-900 p-3 rounded-lg border border-cyan-500/40 space-y-1.5">
               <div className="flex items-center justify-between text-[11px] text-cyan-400 font-bold">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                  GEMINI AI FORMAL CLINICAL MEDICAL TRANSCRIPT:
+                  GEMINI AI CLINICAL PATIENT SUMMARY (PRESENT SITUATION):
                 </span>
-                <span className="text-emerald-400 text-[10px]">ER PHYSICIAN READY</span>
+                <span className="text-emerald-400 text-[10px]">MEDICAL TERMS</span>
               </div>
               <p className="text-cyan-100 text-xs leading-relaxed font-mono font-semibold">
-                "{extractedResult.clinicalSummary}"
+                "{extractedResult.patientSituationSummary}"
               </p>
             </div>
 
+            {/* 2. Immediate ER Doctor Pre-Arrival Actions */}
+            {extractedResult.immediateErDoctorActions && extractedResult.immediateErDoctorActions.length > 0 && (
+              <div className="bg-slate-900 p-3 rounded-lg border border-emerald-500/40 space-y-1.5">
+                <span className="text-[11px] text-emerald-400 font-bold block uppercase tracking-wider">
+                  IMMEDIATE ER DOCTOR PRE-ARRIVAL ACTIONS (WHAT DOCTORS MUST DO NEXT):
+                </span>
+                <ul className="space-y-1 text-xs text-slate-200">
+                  {extractedResult.immediateErDoctorActions.map((action: string, idx: number) => (
+                    <li key={idx} className="flex items-start space-x-1.5 text-emerald-200 font-semibold">
+                      <span className="text-emerald-400 font-bold shrink-0">&gt;</span>
+                      <span>{action}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* 3. Primary Diagnosis in Medical Terms */}
             <div className="bg-slate-900 p-2.5 rounded border border-slate-800 space-y-1">
-              <span className="text-slate-400 text-[10px] block">PRIMARY CLINICAL DIAGNOSIS (MEDICAL TERMINOLOGY)</span>
+              <span className="text-slate-400 text-[10px] block uppercase">PRIMARY CLINICAL DIAGNOSIS (FORMAL MEDICAL TERMINOLOGY)</span>
               <span className="text-emerald-400 font-bold text-sm block">{extractedResult.primaryDiagnosis}</span>
             </div>
 
