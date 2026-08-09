@@ -1,0 +1,26 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-rose-500 selection:text-white;
+  }
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -300;
+  }
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
+}
+
+.custom-leaflet-icon {
+  background: transparent !important;
+  border: none !important;
+}

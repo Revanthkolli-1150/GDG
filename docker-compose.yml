@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # NATS.io Message Broker with JetStream Enabled for Offline-First Log Sync
+  nats:
+    image: nats:2.10-alpine
+    container_name: ambulance_nats_jetstream
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    restart: always
+
+  # Local Self-Hosted OSRM Routing Engine for Zero-Lag Route & Duration Computations
+  osrm:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: ambulance_osrm_engine
+    command: ["osrm-routed", "--algorithm", "mld", "/data/india-latest.osrm"]
+    ports:
+      - "5001:5000"
+    restart: always
+
+  # Custom FastAPI Backend Service (WebSocket Telemetry Broadcaster & AI Engine)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ambulance_dispatch_backend
+    ports:
+      - "5000:5000"
+      - "8000:8000"
+    environment:
+      - PORT=5000
+      - FASTAPI_PORT=8000
+      - NATS_URL=nats://nats:4222
+      - OSRM_URL=http://osrm:5000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - nats
+    restart: always
+
+  # React Leaflet Workstation Dashboard (60Hz Lerp Animation)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ambulance_dispatch_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: always
