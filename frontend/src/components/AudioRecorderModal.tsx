@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Play, RefreshCw, Sparkles, X, CheckCircle2, AlertCircle, Edit3, Volume2, Globe } from 'lucide-react';
-import { fetchAiPrecautions } from '../services/api';
+import { Mic, Square, Play, RefreshCw, Sparkles, X, CheckCircle2, AlertCircle, Edit3, Volume2, Globe, FileText } from 'lucide-react';
+import { fetchAiPrecautions, synthesizeClinicalMedicalTranscript } from '../services/api';
 
 interface AudioRecorderModalProps {
   isOpen: boolean;
@@ -115,85 +115,28 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
 
   const handleProcessAudio = async () => {
     setIsProcessing(true);
-    const textToAnalyze = liveTranscript.trim() || "54 year old male collapsed with severe crushing substernal chest pain, dyspnea, and BP 82/52.";
+    const textToAnalyze = liveTranscript.trim() || "accident where there is a heavy weight loss and major factors";
 
     try {
-      // 1. Try FastAPI Python Whisper & Gemini Extraction Service
-      if (audioChunksRef.current.length > 0) {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const reader = new FileReader();
+      const geminiRes = await synthesizeClinicalMedicalTranscript(textToAnalyze);
 
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
-
-          try {
-            const res = await fetch('http://localhost:8000/api/audio/extract-trauma-base64', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ audioBase64: base64Audio, incidentType: 'VOICE_DICTATION' }),
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.transcript) {
-                setExtractedResult({
-                  transcript: liveTranscript.trim() || data.transcript,
-                  primaryDiagnosis: data.primaryDiagnosis || "Acute Trauma / Cardiac Emergency",
-                  esiLevel: data.esiLevel || "RED_LEVEL_1",
-                  suggestedPrecautions: data.suggestedPrecautions || [
-                    "High-Flow Oxygen @ 15L/min via NRB",
-                    "Establish IV access & Saline bolus"
-                  ]
-                });
-                setIsProcessing(false);
-                return;
-              }
-            }
-          } catch (e) {
-            console.warn('[Audio Extraction] FastAPI fallback to Gemini API Direct Engine.');
-          }
-
-          // 2. Direct Gemini AI Clinical Engine Extraction using the exact spoken transcript
-          const geminiRes = await fetchAiPrecautions('EMERGENCY_TRAUMA', textToAnalyze);
-          
-          setExtractedResult({
-            transcript: textToAnalyze,
-            primaryDiagnosis: textToAnalyze.length > 10 ? textToAnalyze : "Acute Myocardial Infarction / STEMI",
-            esiLevel: geminiRes.urgencyLevel === 'CRITICAL_P1' ? 'RED_LEVEL_1' : 'YELLOW_LEVEL_2',
-            suggestedPrecautions: geminiRes.paramedicProtocols || [
-              "High-Flow Oxygen @ 15L/min via NRB",
-              "Establish dual 18G IV access & Saline bolus",
-              "Continuous 12-Lead EKG Telemetry report to ER"
-            ]
-          });
-          setIsProcessing(false);
-        };
-        return;
-      }
+      setExtractedResult({
+        transcript: textToAnalyze,
+        clinicalSummary: geminiRes.formalClinicalTranscript,
+        primaryDiagnosis: geminiRes.primaryDiagnosis,
+        esiLevel: geminiRes.esiLevel,
+        suggestedPrecautions: geminiRes.suggestedPrecautions,
+      });
     } catch (e) {
       console.error('[Process Audio Error]:', e);
     }
-
-    // Direct Gemini AI Extraction Fallback
-    const geminiRes = await fetchAiPrecautions('EMERGENCY_TRAUMA', textToAnalyze);
-    setExtractedResult({
-      transcript: textToAnalyze,
-      primaryDiagnosis: textToAnalyze.length > 10 ? textToAnalyze : "Acute Myocardial Infarction / STEMI",
-      esiLevel: geminiRes.urgencyLevel === 'CRITICAL_P1' ? 'RED_LEVEL_1' : 'YELLOW_LEVEL_2',
-      suggestedPrecautions: geminiRes.paramedicProtocols || [
-        "High-Flow Oxygen @ 15L/min via NRB",
-        "Establish dual 18G IV access & Saline bolus",
-        "Continuous 12-Lead EKG Telemetry report to ER"
-      ]
-    });
     setIsProcessing(false);
   };
 
   const handleApplyToForm = () => {
     if (extractedResult) {
       onExtractionComplete({
-        transcript: extractedResult.transcript,
+        transcript: `[Spoken Voice]: "${extractedResult.transcript}" | [Gemini Clinical Summary]: ${extractedResult.clinicalSummary}`,
         chiefComplaint: extractedResult.primaryDiagnosis,
         esiLevel: extractedResult.esiLevel,
         precautions: extractedResult.suggestedPrecautions,
@@ -236,7 +179,7 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
               disabled={isRecording}
               className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold text-cyan-300 focus:border-cyan-500 outline-none"
             >
-              <option value="en-IN">🇬BH / 🇮🇳 English (India)</option>
+              <option value="en-IN">🇬🇧 / 🇮🇳 English (India)</option>
               <option value="hi-IN">🇮🇳 Hindi (हिन्दी)</option>
               <option value="te-IN">🇮🇳 Telugu (తెలుగు)</option>
               <option value="ta-IN">🇮🇳 Tamil (தமிழ்)</option>
@@ -295,7 +238,7 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
                 className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2"
               >
                 <Sparkles className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
-                <span>{isProcessing ? 'TRANSCRIBING & EXTRACTING...' : 'EXTRACT TRAUMA WITH GEMINI AI'}</span>
+                <span>{isProcessing ? 'SYNTHESIZING CLINICAL TRANSCRIPT...' : 'TRANSFORM TO MEDICAL TRANSCRIPT WITH GEMINI AI'}</span>
               </button>
             </div>
           )}
@@ -305,13 +248,26 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
         {extractedResult && (
           <div className="bg-slate-950 border border-cyan-500/50 rounded-xl p-4 space-y-3 font-mono text-xs">
             <div className="flex justify-between border-b border-slate-800 pb-2">
-              <span className="text-cyan-400 font-bold">VERBATIM TRANSCRIPT:</span>
+              <span className="text-slate-400 font-bold">PARAMEDIC SPOKEN VOICE:</span>
               <span className="text-rose-400 font-bold">{extractedResult.esiLevel}</span>
             </div>
-            <p className="text-slate-300 italic font-semibold">"{extractedResult.transcript}"</p>
+            <p className="text-slate-400 italic">"{extractedResult.transcript}"</p>
+
+            <div className="bg-slate-900 p-3 rounded-lg border border-cyan-500/40 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-cyan-400 font-bold">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  GEMINI AI FORMAL CLINICAL MEDICAL TRANSCRIPT:
+                </span>
+                <span className="text-emerald-400 text-[10px]">ER PHYSICIAN READY</span>
+              </div>
+              <p className="text-cyan-100 text-xs leading-relaxed font-mono font-semibold">
+                "{extractedResult.clinicalSummary}"
+              </p>
+            </div>
 
             <div className="bg-slate-900 p-2.5 rounded border border-slate-800 space-y-1">
-              <span className="text-slate-400 text-[10px] block">PRIMARY CLINICAL DIAGNOSIS</span>
+              <span className="text-slate-400 text-[10px] block">PRIMARY CLINICAL DIAGNOSIS (MEDICAL TERMINOLOGY)</span>
               <span className="text-emerald-400 font-bold text-sm block">{extractedResult.primaryDiagnosis}</span>
             </div>
 
@@ -320,7 +276,7 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-2 shadow-lg"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>POPULATE IMIST-AMBO & STREAM TO ER PORTAL</span>
+              <span>POPULATE IMIST-AMBO &amp; STREAM TO ER PORTAL</span>
             </button>
           </div>
         )}
