@@ -198,7 +198,7 @@ export const CentralDispatchPortal: React.FC<CentralDispatchPortalProps> = ({
 
           <div className="flex items-center justify-between text-xs font-mono pt-1 text-slate-400">
             <span>RECOMMENDED UNIT: <strong className="text-emerald-400">{aiResultModal.recommendedAmbulanceCallSign}</strong></span>
-            <span>DESTINATION: <strong className="text-cyan-400">{aiResultModal.recommendedHospitalName || 'City General'}</strong></span>
+            <span>DESTINATION: <strong className="text-cyan-400">{aiResultModal.recommendedHospitalName || 'AIIMS Apex Trauma Center'}</strong></span>
             <button onClick={() => setAiResultModal(null)} className="text-xs text-slate-400 hover:text-white underline">
               Close Breakdown
             </button>

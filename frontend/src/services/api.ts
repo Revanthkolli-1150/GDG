@@ -256,6 +256,7 @@ export async function triggerAiAutoDispatch(incidentId: string) {
         confidenceScore: 96,
         reasoning: 'AI Agent matched 108-ALS-DEL-01 based on PostGIS spatial vector to Connaught Place and confirmed trauma bay capacity at AIIMS Apex Trauma Center.',
         etaMinutes: 3,
+        recommendedHospitalName: 'AIIMS Apex Trauma Center',
       },
       message: 'AI Autonomous Dispatch executed.',
     };
