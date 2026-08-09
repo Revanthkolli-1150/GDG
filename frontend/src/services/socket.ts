@@ -55,9 +55,14 @@ export function subscribeIncidentUpdates(callback: (data: any) => void) {
   s.on('incident:updated', callback);
   s.on('ambulance:status-changed', callback);
   s.on('ambulance:auto-rerouted', callback);
+
+  const localHandler = () => callback({ local: true });
+  window.addEventListener('108_incident_updated', localHandler);
+
   return () => {
     s.off('incident:updated', callback);
     s.off('ambulance:status-changed', callback);
     s.off('ambulance:auto-rerouted', callback);
+    window.removeEventListener('108_incident_updated', localHandler);
   };
 }
